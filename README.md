@@ -1,1 +1,1 @@
-# StrayAnimalTracker
+StrayAnimalTracker is a Flask-based API dedicated to monitoring and managing sightings of stray animals. Leveraging Flask for the web framework and SQLAlchemy for object-relational mapping, this application supports operations for creating, reading, updating, and deleting records of stray animal encounters, aiding in the rescue, rehabilitation, and tracking efforts within communities.
