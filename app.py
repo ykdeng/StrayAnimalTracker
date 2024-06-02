@@ -1,6 +1,11 @@
+pip install Flask-Caching
+```
+
+```python
 from flask import Flask, request, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from flask_marshmallow import Marshmallow
+from flask_caching import Cache
 import os
 
 app = Flask(__name__)
@@ -9,6 +14,9 @@ basedir = os.path.abspath(os.path.dirname(__file__))
 app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL') or \
     'sqlite:///' + os.path.join(basedir, 'stray_animals.db')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
+app.config['CACHE_TYPE'] = 'SimpleCache' 
+cache = Cache(app)
 
 db = SQLAlchemy(app)
 ma = Marshmallow(app)
@@ -40,15 +48,19 @@ def add_animal():
     db.session.add(new_animal)
     db.session.commit()
 
+    cache.delete_memoized(get_animals)
+
     return animal_schema.jsonify(new_animal)
 
 @app.route('/animal', methods=['GET'])
+@cache.cached(timeout=50, key_prefix='all_animals')
 def get_animals():
     all_animals = Animal.query.all()
     result = animals_schema.dump(all_animals)
     return jsonify(result)
 
 @app.route('/animal/<id>', methods=['GET'])
+@cache.memoize(timeout=50)
 def get_animal(id):
     animal = Animal.query.get(id)
     return animal_schema.jsonify(animal)
@@ -65,6 +77,9 @@ def update_animal(id):
 
     db.session.commit()
 
+    cache.delete_memoized(get_animal, id)
+    cache.delete_memoized(get_animals)
+
     return animal_schema.jsonify(animal)
 
 @app.route('/animal/<id>', methods=['DELETE'])
@@ -72,6 +87,9 @@ def delete_animal(id):
     animal = Animal.query.get(id)
     db.session.delete(animal)
     db.session.commit()
+
+    cache.delete_memoized(get_animal, id)
+    cache.delete_memoized(get_animals)
 
     return animal_schema.jsonify(animal)
 
