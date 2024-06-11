@@ -16,83 +16,83 @@ ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
 
 db = SQLAlchemy(app)
 
-def allowed_file(filename):
+def is_file_extension_allowed(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
-class AnimalSighting(db.Model):
+class Sighting(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    animal_name = db.Column(db.String(120), nullable=False)
-    location = db.Column(db.String(120), nullable=False)
-    date_spotted = db.Column(db.DateTime, nullable=False)
-    photo_filename = db.Column(db.String(120))
+    animal_type = db.Column(db.String(120), nullable=False)
+    spotted_location = db.Column(db.String(120), nullable=False)
+    spotted_date = db.Column(db.DateTime, nullable=False)
+    image_filename = db.Column(db.String(120))
 
-    def __init__(self, animal_name, location, date_spotted, photo_filename=None):
-        self.animal_name = animal_name
-        self.location = location
-        self.date_spotted = date_spotted
-        self.photo_filename = photo_filename
+    def __init__(self, animal_type, spotted_location, spotted_date, image_filename=None):
+        self.animal_type = animal_type
+        self.spotted_location = spotted_location
+        self.spotted_date = spotted_date
+        self.image_filename = image_filename
 
-    def to_dict(self):
+    def to_json(self):
         return {
             'id': self.id,
-            'animal_name': self.animal_name,
-            'location': self.location,
-            'date_spotted': self.date_spotted.isoformat(),
-            'photo_url': request.host_url + 'uploads/' + self.photo_filename if self.photo_filename else None
+            'animal_type': self.animal_type,
+            'spotted_location': self.spotted_location,
+            'spotted_date': self.spotted_date.isoformat(),
+            'image_url': request.host_url + 'uploads/' + self.image_filename if self.image_filename else None
         }
 
-@app.route('/animal_sighting', methods=['POST'])
-def add_animal_sighting():
-    data = request.form
-    file = request.files.get('photo')
-    filename = None
-    if file and allowed_file(file.filename):
-        filename = secure_filename(file.filename)
-        file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-        file.save(file_path)
-    new_sighting = AnimalSighting(
-        animal_name=data.get('animal_name'), 
-        location=data.get('location'), 
-        date_spotted=data.get('date_spotted'),
-        photo_filename=filename
+@app.route('/save_sighting', methods=['POST'])
+def save_sighting():
+    sighting_details = request.form
+    image_file = request.files.get('image')
+    image_name = None
+    if image_file and is_file_extension_allowed(image_file.filename):
+        image_name = secure_filename(image_file.filename)
+        image_path = os.path.join(app.config['UPLOAD_FOLDER'], image_name)
+        image_file.save(image_path)
+    new_sighting_record = Sighting(
+        animal_type=sighting_details.get('animal_type'), 
+        spotted_location=sighting_details.get('spotted_location'), 
+        spotted_date=sighting_details.get('spotted_date'),
+        image_filename=image_name
         )
-    db.session.add(new_sighting)
+    db.session.add(new_sighting_record)
     db.session.commit()
-    return jsonify(new_sighting.to_dict()), 201
+    return jsonify(new_sighting_record.to_json()), 201
 
-@app.route('/uploads/<filename>')
-def uploaded_file(filename):
+@app.route('/image/<filename>')
+def serve_uploaded_image(filename):
     return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
 
-@app.route('/animal_sightings', methods=['GET'])
-def get_animal_sightings():
-    sightings = AnimalSighting.query.all()
-    return jsonify([s.to_dict() for s in sightings])
+@app.route('/sightings', methods=['GET'])
+def list_sightings():
+    all_sightings = Sighting.query.all()
+    return jsonify([sighting.to_json() for sighting in all_sightings])
 
-@app.route('/animal_sighting/<int:id>', methods=['GET', 'PUT', 'DELETE'])
-def handle_animal_sighting(id):
+@app.route('/sighting/<int:sighting_id>', methods=['GET', 'PUT', 'DELETE'])
+def manage_sighting(sighting_id):
     if request.method == 'GET':
-        sighting = AnimalSighting.query.get_or_404(id)
-        return jsonify(sighting.to_dict())
+        sighting_record = Sighting.query.get_or_404(sighting_id)
+        return jsonify(sighting_record.to_json())
     elif request.method == 'PUT':
-        sighting = AnimalSighting.query.get_or_404(id)
-        data = request.form
-        sighting.animal_name = data.get('animal_name')
-        sighting.location = data.get('location')
-        sighting.date_spotted = data.get('date_spotted')
-        file = request.files.get('photo')
-        if file and allowed_file(file.filename):
-            filename = secure_filename(file.filename)
-            file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-            file.save(file_path)
-            sighting.photo_filename = filename  # Update only if a new file uploaded
+        sighting_record = Sighting.query.get_or_404(sighting_id)
+        update_data = request.form
+        sighting_record.animal_type = update_data.get('animal_type')
+        sighting_record.spotted_location = update_data.get('spotted_location')
+        sighting_record.spotted_date = update_data.get('spotted_date')
+        image_file = request.files.get('image')
+        if image_file and is_file_extension_allowed(image_file.filename):
+            image_name = secure_filename(image_file.filename)
+            image_path = os.path.join(app.config['UPLOAD_FOLDER'], image_name)
+            image_file.save(image_path)
+            sighting_record.image_filename = image_name  # Update only if a new file is uploaded
         db.session.commit()
-        return jsonify(sighting.to_dict())
+        return jsonify(sighting_record.to_json())
     elif request.method == 'DELETE':
-        sighting = AnimalSighting.query.get_or_404(id)
-        db.session.delete(sighting)
+        sighting_record = Sighting.query.get_or_404(sighting_id)
+        db.session.delete(sighting_record)
         db.session.commit()
-        return jsonify({'message': 'Successfully deleted'})
+        return jsonify({'message': 'Sighting successfully deleted'})
 
 if __name__ == '__main__':
     app.run(debug=True)
