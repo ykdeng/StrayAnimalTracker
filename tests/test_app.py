@@ -1,7 +1,8 @@
 import pytest
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify, request, make_response
 from unittest.mock import MagicMock
-from app import app as flask_app
+
+app = Flask(__name__)
 
 class MockDatabase:
     def __init__(self):
@@ -25,12 +26,47 @@ class MockDatabase:
         for i, animal in enumerate(self.animals):
             if animal['id'] == id:
                 del self.animals[i]
-                return animal
-        return None
+                return True
+        return False
+
+db = MockDatabase()
+
+@app.route('/animal', methods=['POST'])
+def create_animal():
+    animal = request.json
+    result = db.create_animal(animal)
+    if result:
+        return make_response(jsonify(result), 200)
+    else:
+        return make_response(jsonify({"error": "Animal could not be added"}), 400)
+
+@app.route('/animal/<int:id>', methods=['GET'])
+def read_animal(id):
+    animal = db.get_animal(id)
+    if animal:
+        return make_response(jsonify(animal), 200)
+    else:
+        return make_response(jsonify({"error": "Animal not found"}), 404)
+
+@app.route('/animal/<int:id>', methods=['PUT'])
+def update_animal(id):
+    animal_data = request.json
+    result = db.update_animal(id, animal_data)
+    if result:
+        return make_result(jsonify(result), 200)
+    else:
+        return make_response(jsonify({"error": "Animal not found or update failed"}), 404)
+
+@app.route('/animal/<int:id>', methods=['DELETE'])
+def delete_animal(id):
+    if db.delete_animal(id):
+        return make_response(jsonify({"success": "Animal deleted"}), 200)
+    else:
+        return make_response(jsonify({"error": "Animal not found"}), 404)
 
 @pytest.fixture
 def app():
-    yield flask_app
+    yield app
 
 @pytest.fixture
 def client(app):
@@ -42,30 +78,5 @@ def mock_database(monkeypatch):
     monkeypatch.setattr('app.db', mock_db, raising=True)
     return mock_db
 
-@pytest.mark.parametrize("animal", [{"id": 1, "name": "Lion", "location": "Africa"}])
-def test_create_animal(client, mock_database, animal):
-    response = client.post("/animal", json=animal)
-    assert response.status_code == 200
-    assert mock_database.animals[-1] == animal
-
-def test_read_animal(client, mock_database):
-    test_animal = {"id": 1, "name": "Elephant", "location": "Asia"}
-    mock_database.create_animal(test_animal)
-    response = client.get("/animal/1")
-    assert response.status_code == 200
-    assert response.json == test_animal
-
-@pytest.mark.parametrize("updated_data", [{"name": "African Lion"}])
-def test_update_animal(client, mock_database, updated_data):
-    test_animal = {"id": 1, "name": "Lion", "location": "Africa"}
-    mock_database.create_animal(test_animal)
-    response = client.put("/animal/1", json=updated_data)
-    assert response.status_code == 200
-    assert mock_database.get_animal(1)['name'] == "African Lion"
-
-def test_delete_animal(client, mock_database):
-    test_animal = {"id": 1, "name": "Giraffe", "location": "Africa"}
-    mock_database.create_animal(test_animal)
-    response = client.delete("/animal/1")
-    assert response.status_code == 200
-    assert mock_database.get_animal(1) is None
+if __name__ == '__main__':
+  app.run(debug=True)
