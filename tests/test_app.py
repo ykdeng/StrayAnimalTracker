@@ -1,5 +1,5 @@
 import pytest
-from flask import Flask, jsonify, request, make_response
+from flask import Flask, jsonify, request
 from unittest.mock import MagicMock
 
 app = Flask(__name__)
@@ -31,38 +31,31 @@ class MockDatabase:
 
 db = MockDatabase()
 
+def make_api_response(data, status_code=200, error_message=None):
+    if error_message:
+        data = {"error": error_message}
+    return jsonify(data), status_code
+
 @app.route('/animal', methods=['POST'])
 def create_animal():
     animal = request.json
     result = db.create_animal(animal)
-    if result:
-        return make_response(jsonify(result), 200)
-    else:
-        return make_response(jsonify({"error": "Animal could not be added"}), 400)
+    return make_api_response(result) if result else make_api_response({}, 400, "Animal could not be added")
 
 @app.route('/animal/<int:id>', methods=['GET'])
 def read_animal(id):
     animal = db.get_animal(id)
-    if animal:
-        return make_response(jsonify(animal), 200)
-    else:
-        return make_response(jsonify({"error": "Animal not found"}), 404)
+    return make_api_response(animal) if animal else make_api_response({}, 404, "Animal not found")
 
 @app.route('/animal/<int:id>', methods=['PUT'])
 def update_animal(id):
     animal_data = request.json
     result = db.update_animal(id, animal_data)
-    if result:
-        return make_result(jsonify(result), 200)
-    else:
-        return make_response(jsonify({"error": "Animal not found or update failed"}), 404)
+    return make_api_response(result) if result else make_api_response({}, 404, "Animal not found or update failed")
 
 @app.route('/animal/<int:id>', methods=['DELETE'])
 def delete_animal(id):
-    if db.delete_animal(id):
-        return make_response(jsonify({"success": "Animal deleted"}), 200)
-    else:
-        return make_response(jsonify({"error": "Animal not found"}), 404)
+    return make_api_response({"success": "Animal deleted"}) if db.delete_animal(id) else make_api_response({}, 404, "Animal not found")
 
 @pytest.fixture
 def app():
@@ -79,4 +72,4 @@ def mock_database(monkeypatch):
     return mock_db
 
 if __name__ == '__main__':
-  app.run(debug=True)
+    app.run(debug=True)
