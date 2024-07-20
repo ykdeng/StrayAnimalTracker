@@ -3,11 +3,19 @@ header {
   color: #fff;
   padding: 20px;
   text-align: center;
+  /* Smooth shadow for depth */
+  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
 }
 
 main {
   padding: 20px;
   margin: 20px;
+  /* Transition for interactive elements */
+  transition: background-color 0.3s ease;
+}
+
+main:hover {
+  background-color: #f5f5f5; /* Gentle hover effect */
 }
 
 footer {
@@ -19,4 +27,31 @@ footer {
   left: 0;
   bottom: 0;
   width: 100%;
+  /* Smooth shadow for depth */
+  box-shadow: 0 -2px 4px rgba(0,0,0,0.2);
+  /* Footer text is more subtle */
+  font-size: 0.9em;
+}
+
+/* Enhances link appearance */
+a {
+  color: #4a90e2; /* Bright, eye-catching color for links */
+  text-decoration: none; /* No underlines for a cleaner look */
+  transition: color 0.3s ease; /* Smooth color transition for hover */
+}
+
+a:hover {
+  color: #2079b0; /* Darker shade on hover */
+}
+
+/* Responsive improvements */
+@media (max-width: 600px) {
+  header, footer {
+    padding: 15px; /* Reduce padding on smaller screens */
+  }
+
+  main {
+    margin: 15px;
+    padding: 15px;
+  }
 }
