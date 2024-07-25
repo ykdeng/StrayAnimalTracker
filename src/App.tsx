@@ -2,6 +2,16 @@ import React from 'react';
 import ReactDOM from 'react-dom';
 import './index.css';
 
+const getCurrentYear = (() => {
+  let cachedYear = null;
+  return () => {
+    if (!cachedYear) {
+      cachedYear = new Date().getFullYear();
+    }
+    return cachedYear;
+  };
+})();
+
 const Header = () => (
   <header>
     <h1>My React App</h1>
@@ -10,7 +20,7 @@ const Header = () => (
 
 const Footer = () => (
   <footer>
-    <p>&copy; {new Date().getFullYear()} My React App</p>
+    <p>&copy; {getCurrentYear()} My React App</p>
   </footer>
 );
 
