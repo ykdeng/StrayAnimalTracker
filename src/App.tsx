@@ -12,6 +12,24 @@ const getCurrentYear = (() => {
   };
 })();
 
+function cacheFunction(fn) {
+  const cache = {};
+  return function(...args) {
+    const key = JSON.stringify(args);
+    if (!cache[key]) {
+      cache[key] = fn(...args);
+    }
+    return cache[key];
+  };
+}
+
+const calculateExpensiveValue = (value) => {
+  console.log("Expensive calculation for:", value);
+  return value * 2;
+};
+
+const cachedCalculateExpensiveValue = cacheFunction(calculateExpensiveValue);
+
 const Header = () => (
   <header>
     <h1>My React App</h1>
@@ -27,13 +45,14 @@ const Footer = () => (
 const MainContent = () => (
   <main>
     <p>Welcome to my React app!</p>
+    <p>Expensive Calculation Result: {cachedCalculateExpensiveValue(10)}</p>
   </main>
 );
 
 const App = () => (
   <div>
     <Header />
-    <MainContent />
+    <Main의Content />
     <Footer />
   </div>
 );
